@@ -1,0 +1,23 @@
+{
+  "name": "mcp-weather-server",
+  "version": "2.0.0",
+  "description": "MCP Weather & AQI Server — Streamable HTTP transport",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "start:stdio": "node src/index-stdio.js"
+  },
+  "keywords": [
+    "mcp",
+    "weather",
+    "aqi",
+    "server",
+    "http"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}
