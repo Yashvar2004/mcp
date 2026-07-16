@@ -1,6 +1,6 @@
 # MCP Weather & AQI Project
 
-A complete **Model Context Protocol (MCP)** implementation featuring a weather server and two different clients.
+A complete **Model Context Protocol (MCP)** implementation featuring a weather server and an AI-powered client with widget rendering.
 
 ## 📁 Project Structure
 
@@ -22,23 +22,13 @@ mcp/
 │   │       └── constants.js  # Weather codes, AQI levels
 │   └── package.json
 │
-├── client-ai/                 # AI-Powered MCP Client
-│   ├── client.js             # Main client with LLM integration
-│   ├── demo.js               # Quick demo script
-│   ├── lib/
-│   │   ├── llm.js            # Groq/DeepSeek integration
-│   │   ├── mcp-raw.js        # Raw HTTP MCP client
-│   │   └── widgets.js        # Terminal widget rendering
-│   └── package.json
-│
-└── client-basic/              # Rule-Based MCP Client
-    ├── client.js             # Main client with keyword routing
+└── client/                    # AI-Powered MCP Client
+    ├── client.js             # Main client with LLM integration
+    ├── demo.js               # Quick demo script
     ├── lib/
-    │   ├── display.js        # Widget rendering + display
-    │   └── router.js         # Keyword-based routing
-    ├── transports/
-    │   ├── http.js           # HTTP transport
-    │   └── stdio.js          # stdio transport
+    │   ├── llm.js            # Groq/DeepSeek integration
+    │   ├── mcp-raw.js        # Raw HTTP MCP client
+    │   └── widgets.js        # Terminal widget rendering
     └── package.json
 ```
 
@@ -57,18 +47,10 @@ Server runs at: `http://127.0.0.1:3000/mcp`
 ### 2. Run the AI Client
 
 ```bash
-cd client-ai
+cd client
 npm install
 # Set your API key in .env file
 node client.js
-```
-
-### 3. Run the Basic Client
-
-```bash
-cd client-basic
-npm install
-node client.js --http http://127.0.0.1:3000/mcp
 ```
 
 ## 🔧 MCP Server Tools
@@ -116,17 +98,14 @@ Add to `claude_desktop_config.json`:
 - `@modelcontextprotocol/sdk` - MCP SDK
 - `zod` - Schema validation
 
-### Client (AI)
+### Client
 - `@modelcontextprotocol/sdk` - MCP SDK
 - `dotenv` - Environment variables
-- `groq-sdk` or `openai` - LLM integration
-
-### Client (Basic)
-- `@modelcontextprotocol/sdk` - MCP SDK
+- `openai` - For Groq/DeepSeek (OpenAI-compatible)
 
 ## 🎨 Widget Rendering
 
-The clients render beautiful terminal widgets:
+The client renders beautiful terminal widgets:
 
 ```
   ┌──────────────────────────────────────────┐
