@@ -25,6 +25,7 @@ import { renderWidget } from "./lib/widgets.js";
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || "http://127.0.0.1:3000/mcp";
 const LLM_API_KEY = process.env.LLM_API_KEY;
+const MCP_API_KEY = process.env.MCP_API_KEY || null;  // For server authorization
 
 if (!LLM_API_KEY || LLM_API_KEY === "sk-your-key-here") {
   console.error("\n  ❌ Set your LLM API key in .env file:");
@@ -53,11 +54,14 @@ function prompt() {
 
 async function connect() {
   console.log(`\n  Connecting to ${MCP_SERVER_URL}...`);
+  if (MCP_API_KEY) {
+    console.log(`  🔑 Using API key for authorization`);
+  }
 
-  const initResult = await initialize(MCP_SERVER_URL);
+  const initResult = await initialize(MCP_SERVER_URL, MCP_API_KEY);
   console.log(`  ✅ Connected to: ${initResult.serverInfo.name} v${initResult.serverInfo.version}`);
 
-  const toolsResult = await listTools(MCP_SERVER_URL);
+  const toolsResult = await listTools(MCP_SERVER_URL, MCP_API_KEY);
   availableTools = toolsResult.tools || [];
   console.log(`  📋 Found ${availableTools.length} tools:`);
   for (const tool of availableTools) {
@@ -69,7 +73,7 @@ async function connect() {
 // ── Execute MCP Tool (used by LLM) ──────────────────────────
 
 async function executeTool(toolName, toolArgs) {
-  return await callTool(MCP_SERVER_URL, toolName, toolArgs);
+  return await callTool(MCP_SERVER_URL, toolName, toolArgs, MCP_API_KEY);
 }
 
 // ── Handle User Input ────────────────────────────────────────

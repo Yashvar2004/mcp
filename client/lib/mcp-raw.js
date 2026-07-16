@@ -7,6 +7,9 @@
 // MCP uses JSON-RPC 2.0 format:
 //   Request:  {"jsonrpc":"2.0","method":"...","params":{...},"id":1}
 //   Response: {"jsonrpc":"2.0","result":{...},"id":1}
+//
+// Authorization:
+//   If MCP_API_KEY is set, sends Authorization: Bearer <key> header
 // ─────────────────────────────────────────────────────────────
 
 let requestId = 0;
@@ -17,9 +20,10 @@ let requestId = 0;
  * @param {string} url - Server endpoint (e.g., "http://127.0.0.1:3000/mcp")
  * @param {string} method - MCP method (e.g., "tools/list", "tools/call")
  * @param {object} params - Method parameters
+ * @param {string} [apiKey] - Optional API key for authorization
  * @returns {Promise<object>} - The result from the server
  */
-export async function sendMcpRequest(url, method, params = {}) {
+export async function sendMcpRequest(url, method, params = {}, apiKey = null) {
   requestId++;
 
   const body = {
@@ -29,12 +33,19 @@ export async function sendMcpRequest(url, method, params = {}) {
     id: requestId,
   };
 
+  const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json, text/event-stream",
+  };
+
+  // Add authorization header if API key is provided
+  if (apiKey) {
+    headers["Authorization"] = `Bearer ${apiKey}`;
+  }
+
   const response = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json, text/event-stream",
-    },
+    headers,
     body: JSON.stringify(body),
   });
 
@@ -94,8 +105,11 @@ async function parseSSE(response) {
 /**
  * Initialize the MCP session.
  * This is the first call — tells the server who we are.
+ *
+ * @param {string} url - Server endpoint
+ * @param {string} [apiKey] - Optional API key for authorization
  */
-export async function initialize(url) {
+export async function initialize(url, apiKey = null) {
   return await sendMcpRequest(url, "initialize", {
     protocolVersion: "2025-03-26",
     capabilities: {},
@@ -103,22 +117,30 @@ export async function initialize(url) {
       name: "mcp-client-ai",
       version: "1.0.0",
     },
-  });
+  }, apiKey);
 }
 
 /**
  * List all available tools on the server.
+ *
+ * @param {string} url - Server endpoint
+ * @param {string} [apiKey] - Optional API key for authorization
  */
-export async function listTools(url) {
-  return await sendMcpRequest(url, "tools/list", {});
+export async function listTools(url, apiKey = null) {
+  return await sendMcpRequest(url, "tools/list", {}, apiKey);
 }
 
 /**
  * Call a specific tool with arguments.
+ *
+ * @param {string} url - Server endpoint
+ * @param {string} toolName - Tool name to call
+ * @param {object} args - Tool arguments
+ * @param {string} [apiKey] - Optional API key for authorization
  */
-export async function callTool(url, toolName, args) {
+export async function callTool(url, toolName, args, apiKey = null) {
   return await sendMcpRequest(url, "tools/call", {
     name: toolName,
     arguments: args,
-  });
+  }, apiKey);
 }

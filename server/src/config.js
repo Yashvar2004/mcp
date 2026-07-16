@@ -12,3 +12,12 @@ export const HOST = process.env.MCP_HOST || "127.0.0.1";
 export const OPEN_METEO_BASE = "https://api.open-meteo.com/v1";
 export const GEOCODING_BASE = "https://geocoding-api.open-meteo.com/v1";
 export const AIR_QUALITY_BASE = "https://air-quality-api.open-meteo.com/v1";
+
+/**
+ * MCP API Key for authorization.
+ * Set MCP_API_KEY env var to enable authentication.
+ * If not set, server runs without auth (for development).
+ *
+ * Clients must send: Authorization: Bearer <MCP_API_KEY>
+ */
+export const API_KEY = process.env.MCP_API_KEY || null;

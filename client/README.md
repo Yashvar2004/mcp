@@ -8,6 +8,7 @@ An AI-powered MCP client that uses LLMs to decide which tools to call and render
 - **Widget Rendering**: Beautiful terminal cards with colors and boxes
 - **Conversation History**: Maintains context between queries
 - **Multi-Language**: Understands English, Hindi, and more
+- **Authorization**: Supports API key authentication
 
 ## Installation
 
@@ -19,14 +20,20 @@ npm install
 
 Create `.env` file:
 ```env
+# LLM API Key (required)
 # Groq (FREE): starts with "gsk_"
+# DeepSeek: starts with "sk-"
 LLM_API_KEY=gsk_your_key_here
 
 # MCP Server URL
 MCP_SERVER_URL=http://127.0.0.1:3000/mcp
+
+# MCP Server API Key (optional, for auth)
+# Must match the server's MCP_API_KEY
+MCP_API_KEY=your-server-api-key
 ```
 
-Get free API key: https://console.groq.com
+Get free Groq API key: https://console.groq.com
 
 ## Usage
 
@@ -65,12 +72,21 @@ mcp> compare delhi and mumbai weather
   └──────────────────────────────────────────┘
 ```
 
+## Authorization
+
+If the server requires auth, set `MCP_API_KEY` in `.env`:
+```env
+MCP_API_KEY=your-server-api-key
+```
+
+The client sends: `Authorization: Bearer <key>` with every request.
+
 ## How It Works
 
 1. User sends natural language query
 2. Query + tool schemas → LLM
 3. LLM decides which tools to call
-4. Tools executed via MCP
+4. Tools executed via MCP (with auth if configured)
 5. Results → LLM → natural language response
 6. Widgets rendered in terminal
 

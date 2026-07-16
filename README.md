@@ -92,6 +92,30 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
+## 🔐 Authorization
+
+The server supports API key authentication via Bearer token.
+
+### Server (with auth):
+```bash
+MCP_API_KEY=your-secret-key npm start
+```
+
+### Client (with auth):
+Add to `.env`:
+```env
+MCP_API_KEY=your-secret-key
+```
+
+### Without auth (development):
+```bash
+# Server: don't set MCP_API_KEY
+npm start
+
+# Client: don't set MCP_API_KEY
+node client.js
+```
+
 ## 📦 Dependencies
 
 ### Server
