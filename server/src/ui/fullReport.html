@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Full Weather Report</title>
+<title>Full Report Widget</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -21,184 +21,249 @@ body {
   max-width: 400px;
 }
 .header {
-  margin-bottom: 20px;
-}
-.header-title {
   font-size: 18px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: #38bdf8;
   margin-bottom: 4px;
 }
-.header-location {
-  font-size: 14px;
+.location {
+  font-size: 13px;
   color: #94a3b8;
+  margin-bottom: 16px;
 }
 .section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid #334155;
 }
-.section:last-child { border-bottom: none; }
+.section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 .section-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #38bdf8;
-  margin-bottom: 12px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 10px;
 }
-.weather-grid {
+.weather-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.weather-temp {
+  font-size: 36px;
+  font-weight: 700;
+  color: #f87171;
+}
+.weather-feels {
+  font-size: 13px;
+  color: #94a3b8;
+}
+.weather-condition {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.weather-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.weather-item {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
-.weather-icon { font-size: 18px; }
-.weather-label { font-size: 11px; color: #94a3b8; }
-.weather-value { font-size: 14px; font-weight: 600; }
-.forecast-days {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.stat {
+  font-size: 12px;
+  color: #94a3b8;
 }
+.stat span { color: #e2e8f0; font-weight: 600; }
 .forecast-day {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  padding: 6px 0;
 }
 .forecast-date {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   width: 60px;
 }
-.forecast-icon { font-size: 18px; width: 30px; text-align: center; }
-.forecast-temps { flex: 1; display: flex; gap: 8px; }
-.forecast-high { color: #f87171; font-weight: 600; }
-.forecast-low { color: #38bdf8; }
-.forecast-rain { font-size: 12px; color: #94a3b8; }
-.aqi-section {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.forecast-temps {
+  font-size: 13px;
+}
+.forecast-temps .high { color: #f87171; }
+.forecast-temps .low { color: #60a5fa; }
+.forecast-rain {
+  font-size: 12px;
+  color: #94a3b8;
 }
 .aqi-badge {
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 24px;
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 22px;
   font-weight: 700;
   color: white;
+  margin-right: 12px;
 }
-.aqi-info { flex: 1; }
+.aqi-info { display: inline-block; vertical-align: middle; }
 .aqi-level { font-size: 14px; font-weight: 600; }
-.aqi-details { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+.aqi-detail {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 8px;
+}
 </style>
 </head>
 <body>
-<div class="card" id="report-card">
-  <div class="header">
-    <div class="header-title">🌤️ Complete Weather Report</div>
-    <div class="header-location" id="location">Loading...</div>
-  </div>
+<div class="card" id="fullreport-card">
+  <div class="header">Complete Weather Report</div>
+  <div class="location" id="location">Loading...</div>
 
   <div class="section" id="weather-section" style="display:none">
     <div class="section-title">Current Weather</div>
-    <div class="weather-grid" id="weather-grid"></div>
+    <div class="weather-main">
+      <div class="weather-temp" id="temp">--C</div>
+      <div class="weather-feels">Feels like <span id="feels">--C</span></div>
+    </div>
+    <div class="weather-condition" id="condition"></div>
+    <div class="weather-stats">
+      <div class="stat">Humidity: <span id="humidity">--%</span></div>
+      <div class="stat">Wind: <span id="wind">-- km/h</span></div>
+      <div class="stat">UV: <span id="uv">--</span></div>
+      <div class="stat">Pressure: <span id="pressure">-- hPa</span></div>
+    </div>
   </div>
 
   <div class="section" id="forecast-section" style="display:none">
     <div class="section-title">3-Day Forecast</div>
-    <div class="forecast-days" id="forecast-days"></div>
+    <div id="forecast-days"></div>
   </div>
 
   <div class="section" id="aqi-section" style="display:none">
     <div class="section-title">Air Quality</div>
-    <div class="aqi-section">
-      <div class="aqi-badge" id="aqi-badge">--</div>
+    <div>
+      <span class="aqi-badge" id="aqi-badge">--</span>
       <div class="aqi-info">
-        <div class="aqi-level" id="aqi-level">--</div>
-        <div class="aqi-details" id="aqi-details"></div>
+        <div class="aqi-level" id="aqi-level"></div>
       </div>
     </div>
+    <div class="aqi-detail" id="aqi-detail"></div>
   </div>
 </div>
 
 <script>
+var PROTOCOL_VERSION = "2026-01-26";
+var requestId = 0;
+
+function sendToHost(message) {
+  window.parent.postMessage(message, "*");
+}
+
+function sendRequest(method, params) {
+  requestId++;
+  sendToHost({
+    jsonrpc: "2.0",
+    id: requestId,
+    method: method,
+    params: params,
+  });
+}
+
+function sendNotification(method, params) {
+  sendToHost({
+    jsonrpc: "2.0",
+    method: method,
+    params: params,
+  });
+}
+
 function getAQIColor(aqi) {
-  if (aqi <= 50) return '#4ade80';
-  if (aqi <= 100) return '#facc15';
-  if (aqi <= 150) return '#fb923c';
-  if (aqi <= 200) return '#f87171';
-  if (aqi <= 300) return '#c084fc';
-  return '#dc2626';
+  if (aqi <= 50) return "#4ade80";
+  if (aqi <= 100) return "#facc15";
+  if (aqi <= 150) return "#fb923c";
+  if (aqi <= 200) return "#f87171";
+  if (aqi <= 300) return "#c084fc";
+  return "#dc2626";
 }
 
-function getWeatherIcon(condition) {
-  if (!condition) return '🌤️';
-  const c = condition.toLowerCase();
-  if (c.includes('clear') || c.includes('sun')) return '☀️';
-  if (c.includes('partly')) return '⛅';
-  if (c.includes('cloud') || c.includes('overcast')) return '☁️';
-  if (c.includes('rain') || c.includes('drizzle') || c.includes('shower')) return '🌧️';
-  if (c.includes('thunder')) return '⛈️';
-  if (c.includes('snow')) return '🌨️';
-  if (c.includes('fog')) return '🌫️';
-  return '🌤️';
+function renderFullReport(data) {
+  document.getElementById("location").textContent = data.location || "Unknown";
+
+  if (data.weather) {
+    document.getElementById("weather-section").style.display = "block";
+    var w = data.weather;
+    document.getElementById("temp").textContent = (w.temperature || "--") + "C";
+    document.getElementById("feels").textContent = (w.feelsLike || "--") + "C";
+    document.getElementById("condition").textContent = w.condition || "";
+    document.getElementById("humidity").textContent = (w.humidity || "--") + "%";
+    document.getElementById("wind").textContent = (w.windSpeed || "--") + " km/h";
+    document.getElementById("uv").textContent = w.uvIndex || "--";
+    document.getElementById("pressure").textContent = (w.pressure || "--") + " hPa";
+  }
+
+  if (data.forecast && data.forecast.length > 0) {
+    document.getElementById("forecast-section").style.display = "block";
+    var container = document.getElementById("forecast-days");
+    container.innerHTML = "";
+
+    data.forecast.forEach(function(day) {
+      var date = new Date(day.date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric" });
+      var div = document.createElement("div");
+      div.className = "forecast-day";
+      div.innerHTML =
+        '<span class="forecast-date">' + date + '</span>' +
+        '<span class="forecast-temps"><span class="high">' + (day.tempMax || "--") + 'C</span> / <span class="low">' + (day.tempMin || "--") + 'C</span></span>' +
+        '<span class="forecast-rain">' + (day.precipitation || "--") + 'mm</span>';
+      container.appendChild(div);
+    });
+  }
+
+  if (data.aqi) {
+    document.getElementById("aqi-section").style.display = "block";
+    document.getElementById("aqi-badge").textContent = data.aqi.value || "--";
+    document.getElementById("aqi-badge").style.background = getAQIColor(data.aqi.value);
+    document.getElementById("aqi-level").textContent = data.aqi.level || "";
+
+    var details = [];
+    if (data.aqi.pm25 !== undefined) details.push("PM2.5: " + data.aqi.pm25);
+    if (data.aqi.pm10 !== undefined) details.push("PM10: " + data.aqi.pm10);
+    if (data.aqi.ozone !== undefined) details.push("O3: " + data.aqi.ozone);
+    document.getElementById("aqi-detail").textContent = details.join(" | ");
+  }
 }
 
-window.addEventListener('message', function(event) {
-  if (event.data && event.data.type === 'mcp-data') {
-    const data = event.data.payload;
-    document.getElementById('location').textContent = '📍 ' + (data.location || 'Unknown');
+window.addEventListener("message", function(event) {
+  var msg = event.data;
+  if (!msg || msg.jsonrpc !== "2.0") return;
 
-    // Weather section
-    if (data.weather) {
-      document.getElementById('weather-section').style.display = 'block';
-      const w = data.weather;
-      const icon = getWeatherIcon(w.condition);
-      document.getElementById('weather-grid').innerHTML = `
-        <div class="weather-item"><span class="weather-icon">${icon}</span><div><div class="weather-label">Condition</div><div class="weather-value">${w.condition || '--'}</div></div></div>
-        <div class="weather-item"><span class="weather-icon">🌡️</span><div><div class="weather-label">Temperature</div><div class="weather-value">${w.temperature || '--'}°C</div></div></div>
-        <div class="weather-item"><span class="weather-icon">💧</span><div><div class="weather-label">Humidity</div><div class="weather-value">${w.humidity || '--'}%</div></div></div>
-        <div class="weather-item"><span class="weather-icon">💨</span><div><div class="weather-label">Wind</div><div class="weather-value">${w.windSpeed || '--'} km/h</div></div></div>
-      `;
-    }
+  if (msg.id && msg.result && msg.result.protocolVersion) {
+    console.log("MCP Apps initialized with host v" + msg.result.protocolVersion);
+    return;
+  }
 
-    // Forecast section
-    if (data.forecast && data.forecast.length > 0) {
-      document.getElementById('forecast-section').style.display = 'block';
-      const container = document.getElementById('forecast-days');
-      container.innerHTML = '';
-      data.forecast.slice(0, 3).forEach(day => {
-        const date = new Date(day.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
-        const div = document.createElement('div');
-        div.className = 'forecast-day';
-        div.innerHTML = `
-          <span class="forecast-date">${date}</span>
-          <span class="forecast-icon">🌤️</span>
-          <div class="forecast-temps"><span class="forecast-high">${day.tempMax || '--'}°</span><span class="forecast-low">${day.tempMin || '--'}°</span></div>
-          <span class="forecast-rain">🌧️ ${day.precipitation || '0'}mm</span>
-        `;
-        container.appendChild(div);
-      });
+  if (msg.method === "ui/notifications/tool-result" && msg.params) {
+    var result = msg.params.result || msg.params;
+    if (result.content) {
+      var textBlock = result.content.find(function(c) { return c.type === "text"; });
+      if (textBlock) {
+        try {
+          var data = JSON.parse(textBlock.text);
+          if (data.type === "fullReport") {
+            renderFullReport(data);
+          }
+        } catch (e) {
+          console.error("Failed to parse tool result:", e);
+        }
+      }
     }
-
-    // AQI section
-    if (data.aqi) {
-      document.getElementById('aqi-section').style.display = 'block';
-      const aqi = data.aqi;
-      document.getElementById('aqi-badge').textContent = aqi.value || '--';
-      document.getElementById('aqi-badge').style.background = getAQIColor(aqi.value);
-      document.getElementById('aqi-level').textContent = aqi.level || '';
-      document.getElementById('aqi-details').textContent = `PM2.5: ${aqi.pm25 || '--'} | PM10: ${aqi.pm10 || '--'} | O₃: ${aqi.ozone || '--'}`;
-    }
+    return;
   }
 });
 
-if (window.parent !== window) {
-  window.parent.postMessage({ type: 'mcp-request', tool: 'get_full_report' }, '*');
-}
+sendRequest("ui/initialize", {
+  appInfo: { name: "Full Report Card", version: "1.0.0" },
+  appCapabilities: {},
+  protocolVersion: PROTOCOL_VERSION,
+});
+
+sendNotification("ui/notifications/initialized", {});
 </script>
 </body>
 </html>

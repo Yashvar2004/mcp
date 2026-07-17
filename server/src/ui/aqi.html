@@ -41,9 +41,7 @@ body {
   font-weight: 700;
   color: white;
 }
-.aqi-info {
-  flex: 1;
-}
+.aqi-info { flex: 1; }
 .aqi-level {
   font-size: 16px;
   font-weight: 600;
@@ -116,61 +114,117 @@ body {
 </div>
 
 <script>
+// ── MCP Apps PostMessage Protocol ──────────────────────────
+const PROTOCOL_VERSION = "2026-01-26";
+let requestId = 0;
+
+function sendToHost(message) {
+  window.parent.postMessage(message, "*");
+}
+
+function sendRequest(method, params) {
+  requestId++;
+  sendToHost({
+    jsonrpc: "2.0",
+    id: requestId,
+    method: method,
+    params: params,
+  });
+}
+
+function sendNotification(method, params) {
+  sendToHost({
+    jsonrpc: "2.0",
+    method: method,
+    params: params,
+  });
+}
+
 function getBarColor(val, good, moderate) {
-  if (!val || val <= good) return '#4ade80';
-  if (val <= moderate) return '#facc15';
-  return '#f87171';
+  if (!val || val <= good) return "#4ade80";
+  if (val <= moderate) return "#facc15";
+  return "#f87171";
 }
 
 function getAQIColor(aqi) {
-  if (aqi <= 50) return '#4ade80';
-  if (aqi <= 100) return '#facc15';
-  if (aqi <= 150) return '#fb923c';
-  if (aqi <= 200) return '#f87171';
-  if (aqi <= 300) return '#c084fc';
-  return '#dc2626';
+  if (aqi <= 50) return "#4ade80";
+  if (aqi <= 100) return "#facc15";
+  if (aqi <= 150) return "#fb923c";
+  if (aqi <= 200) return "#f87171";
+  if (aqi <= 300) return "#c084fc";
+  return "#dc2626";
 }
 
-window.addEventListener('message', function(event) {
-  if (event.data && event.data.type === 'mcp-data') {
-    const data = event.data.payload;
-    document.getElementById('location').textContent = data.location || 'Unknown';
-    document.getElementById('aqi-badge').textContent = data.aqi || '--';
-    document.getElementById('aqi-badge').style.background = getAQIColor(data.aqi);
-    document.getElementById('aqi-level').textContent = data.level || '';
-    document.getElementById('advice').innerHTML = '💡 ' + (data.healthAdvice || '');
+function renderAQI(data) {
+  document.getElementById("location").textContent = data.location || "Unknown";
+  document.getElementById("aqi-badge").textContent = data.aqi || "--";
+  document.getElementById("aqi-badge").style.background = getAQIColor(data.aqi);
+  document.getElementById("aqi-level").textContent = data.level || "";
+  document.getElementById("advice").innerHTML = "💡 " + (data.healthAdvice || "");
 
-    const pollutants = document.getElementById('pollutants');
-    pollutants.innerHTML = '';
+  const pollutants = document.getElementById("pollutants");
+  pollutants.innerHTML = "";
 
-    const items = [
-      { name: 'PM2.5', value: data.pollutants?.pm25?.value, good: 25, moderate: 50, unit: 'µg/m³' },
-      { name: 'PM10', value: data.pollutants?.pm10?.value, good: 50, moderate: 100, unit: 'µg/m³' },
-      { name: 'O₃', value: data.pollutants?.ozone?.value, good: 100, moderate: 180, unit: 'µg/m³' },
-      { name: 'NO₂', value: data.pollutants?.no2?.value, good: 40, moderate: 80, unit: 'µg/m³' },
-    ];
+  const items = [
+    { name: "PM2.5", value: data.pollutants?.pm25?.value, good: 25, moderate: 50, unit: "µg/m³" },
+    { name: "PM10", value: data.pollutants?.pm10?.value, good: 50, moderate: 100, unit: "µg/m³" },
+    { name: "O₃", value: data.pollutants?.ozone?.value, good: 100, moderate: 180, unit: "µg/m³" },
+    { name: "NO₂", value: data.pollutants?.no2?.value, good: 40, moderate: 80, unit: "µg/m³" },
+  ];
 
-    items.forEach(item => {
-      const val = item.value || 0;
-      const max = item.moderate * 1.5;
-      const pct = Math.min((val / max) * 100, 100);
-      const color = getBarColor(val, item.good, item.moderate);
+  items.forEach(function(item) {
+    const val = item.value || 0;
+    const max = item.moderate * 1.5;
+    const pct = Math.min((val / max) * 100, 100);
+    const color = getBarColor(val, item.good, item.moderate);
 
-      const div = document.createElement('div');
-      div.className = 'pollutant';
-      div.innerHTML = `
-        <span class="pollutant-name">${item.name}</span>
-        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
-        <span class="pollutant-value">${val} ${item.unit}</span>
-      `;
-      pollutants.appendChild(div);
-    });
+    const div = document.createElement("div");
+    div.className = "pollutant";
+    div.innerHTML =
+      '<span class="pollutant-name">' + item.name + '</span>' +
+      '<div class="bar-bg"><div class="bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+      '<span class="pollutant-value">' + val + ' ' + item.unit + '</span>';
+    pollutants.appendChild(div);
+  });
+}
+
+// Listen for messages from host
+window.addEventListener("message", function(event) {
+  const msg = event.data;
+  if (!msg || msg.jsonrpc !== "2.0") return;
+
+  if (msg.id && msg.result && msg.result.protocolVersion) {
+    console.log("MCP Apps initialized with host v" + msg.result.protocolVersion);
+    return;
+  }
+
+  if (msg.method === "ui/notifications/tool-result" && msg.params) {
+    const result = msg.params.result || msg.params;
+    if (result.content) {
+      const textBlock = result.content.find(function(c) { return c.type === "text"; });
+      if (textBlock) {
+        try {
+          const data = JSON.parse(textBlock.text);
+          if (data.type === "aqi") {
+            renderAQI(data);
+          }
+        } catch (e) {
+          console.error("Failed to parse tool result:", e);
+        }
+      }
+    }
+    return;
   }
 });
 
-if (window.parent !== window) {
-  window.parent.postMessage({ type: 'mcp-request', tool: 'get_aqi' }, '*');
-}
+// Initialize MCP Apps connection
+sendRequest("ui/initialize", {
+  appInfo: { name: "AQI Card", version: "1.0.0" },
+  appCapabilities: {},
+  protocolVersion: PROTOCOL_VERSION,
+});
+
+sendNotification("ui/notifications/initialized", {});
 </script>
 </body>
 </html>

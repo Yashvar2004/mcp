@@ -58,9 +58,7 @@ body {
   align-items: center;
   gap: 8px;
 }
-.stat-icon {
-  font-size: 18px;
-}
+.stat-icon { font-size: 18px; }
 .stat-label {
   font-size: 11px;
   color: #94a3b8;
@@ -114,25 +112,93 @@ body {
 </div>
 
 <script>
-// Listen for data from MCP host via postMessage
-window.addEventListener('message', function(event) {
-  if (event.data && event.data.type === 'mcp-data') {
-    const data = event.data.payload;
-    document.getElementById('location').textContent = data.location || 'Unknown';
-    document.getElementById('temp').textContent = (data.temperature || '--') + '°C';
-    document.getElementById('feels').textContent = (data.feelsLike || '--') + '°C';
-    document.getElementById('condition').textContent = data.condition || '';
-    document.getElementById('humidity').textContent = (data.humidity || '--') + '%';
-    document.getElementById('wind').textContent = (data.windSpeed || '--') + ' km/h';
-    document.getElementById('rain').textContent = (data.precipitation || '0') + ' mm';
-    document.getElementById('uv').textContent = data.uvIndex || '--';
+// ── MCP Apps PostMessage Protocol ──────────────────────────
+// Implements ui/initialize handshake and listens for
+// ui/notifications/tool-result from the host.
+
+const PROTOCOL_VERSION = "2026-01-26";
+let requestId = 0;
+
+function sendToHost(message) {
+  window.parent.postMessage(message, "*");
+}
+
+function sendRequest(method, params) {
+  requestId++;
+  sendToHost({
+    jsonrpc: "2.0",
+    id: requestId,
+    method: method,
+    params: params,
+  });
+}
+
+function sendNotification(method, params) {
+  sendToHost({
+    jsonrpc: "2.0",
+    method: method,
+    params: params,
+  });
+}
+
+// Render weather data into the card
+function renderWeather(data) {
+  document.getElementById("location").textContent = data.location || "Unknown";
+  document.getElementById("temp").textContent = (data.temperature || "--") + "°C";
+  document.getElementById("feels").textContent = (data.feelsLike || "--") + "°C";
+  document.getElementById("condition").textContent = data.condition || "";
+  document.getElementById("humidity").textContent = (data.humidity || "--") + "%";
+  document.getElementById("wind").textContent = (data.windSpeed || "--") + " km/h";
+  document.getElementById("rain").textContent = (data.precipitation || "0") + " mm";
+  document.getElementById("uv").textContent = data.uvIndex || "--";
+}
+
+// Listen for messages from host
+window.addEventListener("message", function(event) {
+  const msg = event.data;
+  if (!msg || msg.jsonrpc !== "2.0") return;
+
+  // Handle ui/initialize response
+  if (msg.id && msg.result && msg.result.protocolVersion) {
+    console.log("MCP Apps initialized with host v" + msg.result.protocolVersion);
+    return;
+  }
+
+  // Handle ui/notifications/tool-result
+  if (msg.method === "ui/notifications/tool-result" && msg.params) {
+    const result = msg.params.result || msg.params;
+    if (result.content) {
+      const textBlock = result.content.find(function(c) { return c.type === "text"; });
+      if (textBlock) {
+        try {
+          const data = JSON.parse(textBlock.text);
+          if (data.type === "weather") {
+            renderWeather(data);
+          }
+        } catch (e) {
+          console.error("Failed to parse tool result:", e);
+        }
+      }
+    }
+    return;
+  }
+
+  // Handle ui/notifications/tool-input (streaming input)
+  if (msg.method === "ui/notifications/tool-input" && msg.params) {
+    console.log("Tool input received:", msg.params);
+    return;
   }
 });
 
-// Request data from parent
-if (window.parent !== window) {
-  window.parent.postMessage({ type: 'mcp-request', tool: 'search_weather' }, '*');
-}
+// Initialize MCP Apps connection
+sendRequest("ui/initialize", {
+  appInfo: { name: "Weather Card", version: "1.0.0" },
+  appCapabilities: {},
+  protocolVersion: PROTOCOL_VERSION,
+});
+
+// Send initialized notification
+sendNotification("ui/notifications/initialized", {});
 </script>
 </body>
 </html>

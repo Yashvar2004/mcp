@@ -20,7 +20,7 @@ body {
   padding: 20px;
   max-width: 360px;
 }
-.header {
+.location {
   font-size: 14px;
   color: #38bdf8;
   margin-bottom: 16px;
@@ -28,105 +28,149 @@ body {
   align-items: center;
   gap: 6px;
 }
-.days {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 .day {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  justify-content: space-between;
+  padding: 10px 0;
   border-bottom: 1px solid #334155;
 }
 .day:last-child { border-bottom: none; }
-.day-name {
+.day-date {
   font-size: 14px;
   font-weight: 600;
   width: 60px;
-  color: #e2e8f0;
 }
-.day-icon {
-  font-size: 20px;
-  width: 30px;
-  text-align: center;
-}
+.day-icon { font-size: 20px; width: 30px; text-align: center; }
 .day-temps {
-  flex: 1;
+  font-size: 14px;
   display: flex;
-  align-items: center;
   gap: 8px;
 }
-.temp-high {
-  font-size: 16px;
-  font-weight: 600;
-  color: #f87171;
-}
-.temp-low {
-  font-size: 16px;
-  color: #38bdf8;
-}
+.temp-high { color: #f87171; font-weight: 600; }
+.temp-low { color: #60a5fa; }
 .day-rain {
   font-size: 12px;
   color: #94a3b8;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  width: 60px;
+  text-align: right;
 }
 </style>
 </head>
 <body>
 <div class="card" id="forecast-card">
-  <div class="header">📅 <span id="location">Loading...</span></div>
-  <div class="days" id="days"></div>
+  <div class="location">📅 <span id="location">Loading...</span> — <span id="days-count">7</span>-Day Forecast</div>
+  <div id="forecast-days"></div>
 </div>
 
 <script>
-function getWeatherIcon(condition) {
-  if (!condition) return '🌤️';
-  const c = condition.toLowerCase();
-  if (c.includes('clear') || c.includes('sun')) return '☀️';
-  if (c.includes('partly')) return '⛅';
-  if (c.includes('cloud') || c.includes('overcast')) return '☁️';
-  if (c.includes('rain') || c.includes('drizzle') || c.includes('shower')) return '🌧️';
-  if (c.includes('thunder')) return '⛈️';
-  if (c.includes('snow')) return '🌨️';
-  if (c.includes('fog')) return '🌫️';
-  return '🌤️';
+// ── MCP Apps PostMessage Protocol ──────────────────────────
+const PROTOCOL_VERSION = "2026-01-26";
+let requestId = 0;
+
+function sendToHost(message) {
+  window.parent.postMessage(message, "*");
 }
 
-window.addEventListener('message', function(event) {
-  if (event.data && event.data.type === 'mcp-data') {
-    const data = event.data.payload;
-    document.getElementById('location').textContent = (data.location || 'Unknown') + ' — Forecast';
+function sendRequest(method, params) {
+  requestId++;
+  sendToHost({
+    jsonrpc: "2.0",
+    id: requestId,
+    method: method,
+    params: params,
+  });
+}
 
-    const days = document.getElementById('days');
-    days.innerHTML = '';
+function sendNotification(method, params) {
+  sendToHost({
+    jsonrpc: "2.0",
+    method: method,
+    params: params,
+  });
+}
 
-    (data.days || []).slice(0, 7).forEach(day => {
-      const date = new Date(day.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
-      const icon = getWeatherIcon(day.condition);
+function getWeatherIcon(condition) {
+  if (!condition) return "🌤️";
+  var c = condition.toLowerCase();
+  if (c.includes("clear") || c.includes("sun")) return "☀️";
+  if (c.includes("mainly clear")) return "🌤️";
+  if (c.includes("partly")) return "⛅";
+  if (c.includes("overcast") || c.includes("cloud")) return "☁️";
+  if (c.includes("fog")) return "🌫️";
+  if (c.includes("drizzle") || c.includes("rain") || c.includes("shower")) return "🌧️";
+  if (c.includes("thunder")) return "⛈️";
+  if (c.includes("snow")) return "🌨️";
+  return "🌤️";
+}
 
-      const div = document.createElement('div');
-      div.className = 'day';
-      div.innerHTML = `
-        <span class="day-name">${date}</span>
-        <span class="day-icon">${icon}</span>
-        <div class="day-temps">
-          <span class="temp-high">${day.tempMax || '--'}°</span>
-          <span class="temp-low">${day.tempMin || '--'}°</span>
-        </div>
-        <span class="day-rain">🌧️ ${day.precipitation || '0'}mm</span>
-      `;
-      days.appendChild(div);
+function renderForecast(data) {
+  document.getElementById("location").textContent = data.location || "Unknown";
+  document.getElementById("days-count").textContent = data.days ? data.days.length : 7;
+
+  var container = document.getElementById("forecast-days");
+  container.innerHTML = "";
+
+  if (!data.days) return;
+
+  data.days.forEach(function(day) {
+    var date = new Date(day.date).toLocaleDateString("en-IN", {
+      weekday: "short",
+      day: "numeric",
     });
+    var icon = getWeatherIcon(day.condition);
+    var high = day.tempMax || "--";
+    var low = day.tempMin || "--";
+    var rain = day.precipitation || "--";
+
+    var div = document.createElement("div");
+    div.className = "day";
+    div.innerHTML =
+      '<span class="day-date">' + date + '</span>' +
+      '<span class="day-icon">' + icon + '</span>' +
+      '<span class="day-temps"><span class="temp-high">' + high + '°</span> / <span class="temp-low">' + low + '°</span></span>' +
+      '<span class="day-rain">🌧️ ' + rain + 'mm</span>';
+    container.appendChild(div);
+  });
+}
+
+// Listen for messages from host
+window.addEventListener("message", function(event) {
+  var msg = event.data;
+  if (!msg || msg.jsonrpc !== "2.0") return;
+
+  if (msg.id && msg.result && msg.result.protocolVersion) {
+    console.log("MCP Apps initialized with host v" + msg.result.protocolVersion);
+    return;
+  }
+
+  if (msg.method === "ui/notifications/tool-result" && msg.params) {
+    var result = msg.params.result || msg.params;
+    if (result.content) {
+      var textBlock = result.content.find(function(c) { return c.type === "text"; });
+      if (textBlock) {
+        try {
+          var data = JSON.parse(textBlock.text);
+          if (data.type === "forecast") {
+            renderForecast(data);
+          }
+        } catch (e) {
+          console.error("Failed to parse tool result:", e);
+        }
+      }
+    }
+    return;
   }
 });
 
-if (window.parent !== window) {
-  window.parent.postMessage({ type: 'mcp-request', tool: 'get_forecast' }, '*');
-}
+// Initialize MCP Apps connection
+sendRequest("ui/initialize", {
+  appInfo: { name: "Forecast Card", version: "1.0.0" },
+  appCapabilities: {},
+  protocolVersion: PROTOCOL_VERSION,
+});
+
+sendNotification("ui/notifications/initialized", {});
 </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // Weather tools — search_weather + get_forecast
-// Registers both tools on a given McpServer instance.
+// Uses registerAppTool from @modelcontextprotocol/ext-apps
+// for spec-compliant MCP Apps UI linking.
 // ─────────────────────────────────────────────────────────────
 
 import { z } from "zod";
@@ -12,21 +13,31 @@ import { WEATHER_CODES } from "../helpers/constants.js";
 /**
  * Registers the search_weather and get_forecast tools.
  * @param {import("@modelcontextprotocol/sdk/server/mcp.js").McpServer} server
+ * @param {Function} registerAppTool - registerAppTool from ext-apps
  */
-export function registerWeatherTools(server) {
+export function registerWeatherTools(server, registerAppTool) {
   // ── search_weather ──────────────────────────────────────────
-  server.tool(
+  registerAppTool(
+    server,
     "search_weather",
-    "Get current weather for any city in India or worldwide by city name",
     {
-      city: z.string().describe("City name (e.g., Delhi, Mumbai, Loni, Bangalore)"),
+      description: "Get current weather for any city in India or worldwide by city name",
+      inputSchema: {
+        city: z.string().describe("City name (e.g., Delhi, Mumbai, Loni, Bangalore)"),
+      },
+      _meta: {
+        ui: {
+          resourceUri: "ui://weather/card",
+        },
+      },
     },
     async ({ city }) => {
       const location = await geocodeCity(city);
 
       if (!location) {
         return {
-          content: [{ type: "text", text: `❌ Could not find location: ${city}` }],
+          content: [{ type: "text", text: `Could not find location: ${city}` }],
+          isError: true,
         };
       }
 
@@ -37,7 +48,8 @@ export function registerWeatherTools(server) {
 
       if (!data || !data.current) {
         return {
-          content: [{ type: "text", text: "❌ Unable to fetch weather data." }],
+          content: [{ type: "text", text: "Unable to fetch weather data." }],
+          isError: true,
         };
       }
 
@@ -45,7 +57,6 @@ export function registerWeatherTools(server) {
       const locationName = `${name}${admin1 ? ", " + admin1 : ""}, ${country}`;
       const weatherDesc = WEATHER_CODES[current.weather_code] || `Code ${current.weather_code}`;
 
-      // Return structured JSON for client widgets to render
       const result = {
         type: "weather",
         location: locationName,
@@ -69,28 +80,32 @@ export function registerWeatherTools(server) {
 
       return {
         content: [{ type: "text", text: JSON.stringify(result) }],
-        _meta: {
-          ui: {
-            resourceUri: "ui://weather/card",
-          },
-        },
       };
     }
   );
 
   // ── get_forecast ────────────────────────────────────────────
-  server.tool(
+  registerAppTool(
+    server,
     "get_forecast",
-    "Get 7-day weather forecast for any city in India or worldwide",
     {
-      city: z.string().describe("City name (e.g., Delhi, Mumbai, Loni)"),
+      description: "Get 7-day weather forecast for any city in India or worldwide",
+      inputSchema: {
+        city: z.string().describe("City name (e.g., Delhi, Mumbai, Loni)"),
+      },
+      _meta: {
+        ui: {
+          resourceUri: "ui://forecast/card",
+        },
+      },
     },
     async ({ city }) => {
       const location = await geocodeCity(city);
 
       if (!location) {
         return {
-          content: [{ type: "text", text: `❌ Could not find location: ${city}` }],
+          content: [{ type: "text", text: `Could not find location: ${city}` }],
+          isError: true,
         };
       }
 
@@ -101,14 +116,14 @@ export function registerWeatherTools(server) {
 
       if (!data || !data.daily) {
         return {
-          content: [{ type: "text", text: "❌ Unable to fetch forecast data." }],
+          content: [{ type: "text", text: "Unable to fetch forecast data." }],
+          isError: true,
         };
       }
 
       const daily = data.daily;
       const locationName = `${name}${admin1 ? ", " + admin1 : ""}, ${country}`;
 
-      // Return structured JSON for client widgets to render
       const days = [];
       for (let i = 0; i < daily.time.length; i++) {
         days.push({
@@ -135,11 +150,6 @@ export function registerWeatherTools(server) {
 
       return {
         content: [{ type: "text", text: JSON.stringify(result) }],
-        _meta: {
-          ui: {
-            resourceUri: "ui://forecast/card",
-          },
-        },
       };
     }
   );

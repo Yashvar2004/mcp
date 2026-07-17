@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // AQI tool — get_aqi
-// Registers the air quality index tool on a given McpServer.
+// Uses registerAppTool from @modelcontextprotocol/ext-apps
+// for spec-compliant MCP Apps UI linking.
 // ─────────────────────────────────────────────────────────────
 
 import { z } from "zod";
@@ -12,20 +13,30 @@ import { getAQILevel } from "../helpers/constants.js";
 /**
  * Registers the get_aqi tool.
  * @param {import("@modelcontextprotocol/sdk/server/mcp.js").McpServer} server
+ * @param {Function} registerAppTool - registerAppTool from ext-apps
  */
-export function registerAQITool(server) {
-  server.tool(
+export function registerAQITool(server, registerAppTool) {
+  registerAppTool(
+    server,
     "get_aqi",
-    "Get Air Quality Index (AQI) for any city in India or worldwide",
     {
-      city: z.string().describe("City name (e.g., Delhi, Mumbai, Loni)"),
+      description: "Get Air Quality Index (AQI) for any city in India or worldwide",
+      inputSchema: {
+        city: z.string().describe("City name (e.g., Delhi, Mumbai, Loni)"),
+      },
+      _meta: {
+        ui: {
+          resourceUri: "ui://aqi/card",
+        },
+      },
     },
     async ({ city }) => {
       const location = await geocodeCity(city);
 
       if (!location) {
         return {
-          content: [{ type: "text", text: `❌ Could not find location: ${city}` }],
+          content: [{ type: "text", text: `Could not find location: ${city}` }],
+          isError: true,
         };
       }
 
@@ -36,7 +47,8 @@ export function registerAQITool(server) {
 
       if (!data || !data.current) {
         return {
-          content: [{ type: "text", text: "❌ Unable to fetch AQI data." }],
+          content: [{ type: "text", text: "Unable to fetch AQI data." }],
+          isError: true,
         };
       }
 
@@ -44,7 +56,6 @@ export function registerAQITool(server) {
       const locationName = `${name}${admin1 ? ", " + admin1 : ""}, ${country}`;
       const aqiInfo = getAQILevel(current.us_aqi);
 
-      // Return structured JSON for client widgets to render
       const result = {
         type: "aqi",
         location: locationName,
@@ -71,11 +82,6 @@ export function registerAQITool(server) {
 
       return {
         content: [{ type: "text", text: JSON.stringify(result) }],
-        _meta: {
-          ui: {
-            resourceUri: "ui://aqi/card",
-          },
-        },
       };
     }
   );
