@@ -67,7 +67,14 @@ export function registerWeatherTools(server) {
         },
       };
 
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+        _meta: {
+          ui: {
+            resourceUri: "ui://weather/card",
+          },
+        },
+      };
     }
   );
 
@@ -126,7 +133,14 @@ export function registerWeatherTools(server) {
         },
       };
 
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+        _meta: {
+          ui: {
+            resourceUri: "ui://forecast/card",
+          },
+        },
+      };
     }
   );
 }

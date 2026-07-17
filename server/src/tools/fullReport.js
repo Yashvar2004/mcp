@@ -95,7 +95,14 @@ export function registerFullReportTool(server) {
         };
       }
 
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+        _meta: {
+          ui: {
+            resourceUri: "ui://fullreport/card",
+          },
+        },
+      };
     }
   );
 }

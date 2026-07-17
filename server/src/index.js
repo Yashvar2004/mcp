@@ -8,38 +8,8 @@
 import http from "node:http";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createServer } from "./server.js";
-import { PORT, HOST, API_KEY } from "./config.js";
-
-/**
- * Validates the Authorization header.
- * If MCP_API_KEY is set, requests must include: Authorization: Bearer <key>
- * If MCP_API_KEY is not set, all requests are allowed (development mode).
- *
- * @param {object} req - Node.js IncomingMessage
- * @returns {{ valid: boolean, error?: string }}
- */
-function validateAuth(req) {
-  // No API key configured — allow all requests (development mode)
-  if (!API_KEY) {
-    return { valid: true };
-  }
-
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return { valid: false, error: "Missing Authorization header. Use: Authorization: Bearer <api_key>" };
-  }
-
-  const [scheme, token] = authHeader.split(" ");
-  if (scheme !== "Bearer" || !token) {
-    return { valid: false, error: "Invalid Authorization format. Use: Bearer <api_key>" };
-  }
-
-  if (token !== API_KEY) {
-    return { valid: false, error: "Invalid API key" };
-  }
-
-  return { valid: true };
-}
+import { PORT, HOST } from "./config.js";
+import { validateAuth, getAuthInfo } from "./auth/index.js";
 
 /**
  * Converts a Node.js IncomingMessage to a Web Standard Request,
@@ -142,7 +112,7 @@ async function handleRequest(req, res) {
   }
 
   // Authorization check
-  const auth = validateAuth(req);
+  const auth = await validateAuth(req);
   if (!auth.valid) {
     res.writeHead(401, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: auth.error }));
@@ -185,11 +155,13 @@ async function handleRequest(req, res) {
 const httpServer = http.createServer(handleRequest);
 
 httpServer.listen(PORT, HOST, () => {
+  const authInfo = getAuthInfo();
   console.log(`\n🌤️  India Weather & AQI MCP Server`);
   console.log(`   Endpoint: http://${HOST}:${PORT}/mcp`);
   console.log(`   Transport: Streamable HTTP (stateless)`);
   console.log(`   Tools: search_weather, get_forecast, get_aqi, get_full_report`);
-  console.log(`   Auth: ${API_KEY ? "Enabled (Bearer token required)" : "Disabled (set MCP_API_KEY to enable)"}\n`);
+  console.log(`   Auth Provider: ${authInfo.provider}`);
+  console.log(`   Auth Configured: ${authInfo.configured ? "Yes" : "No (development mode)"}\n`);
 });
 
 // Graceful shutdown

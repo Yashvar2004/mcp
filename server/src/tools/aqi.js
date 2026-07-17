@@ -69,7 +69,14 @@ export function registerAQITool(server) {
             : "Everyone should reduce prolonged outdoor exertion. Stay indoors if possible.",
       };
 
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+        _meta: {
+          ui: {
+            resourceUri: "ui://aqi/card",
+          },
+        },
+      };
     }
   );
 }
